@@ -157,7 +157,10 @@ func (r *DB) FindBasicByPrefix(ctx context.Context, p PrefixParams) ([]BasicResu
 	query := "SELECT " + basicColumns + " FROM cache_machiaza WHERE ? LIKE normalized_address || '%'"
 	args := []any{p.BaseAddr}
 
-	if p.PrefCode != "" && p.PrefCode != model.All {
+	if p.LgCode != "" {
+		query += " AND lg_code = ?"
+		args = append(args, p.LgCode)
+	} else if p.PrefCode != "" && p.PrefCode != model.All {
 		query += " AND pref_code = ?"
 		args = append(args, p.PrefCode)
 	}

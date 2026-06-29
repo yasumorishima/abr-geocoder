@@ -44,6 +44,7 @@ type LevenshteinParams struct {
 type PrefixParams struct {
 	BaseAddr string // Base address to match as prefix
 	PrefCode string // Prefecture code filter
+	LgCode   string // Local-government code filter
 	Limit    int    // Maximum number of results
 }
 

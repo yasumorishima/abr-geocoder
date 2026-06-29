@@ -23,6 +23,16 @@ type levenshteinQuerier interface {
 // Search performs fuzzy address matching using Levenshtein distance.
 // It includes fallback strategies for low-score matches and prefix matching.
 func Search(ctx context.Context, repo levenshteinQuerier, p SearchParams) ([]model.MatchedResult, error) {
+	// Without any region anchor (prefecture / local-government / machiaza), a fuzzy
+	// match would scan the entire cache_machiaza table via editdist3 (600k+ rows) and
+	// can exceed queryTimeout under batch contention. Anchorless inputs only occur when
+	// the prefecture/city is unrecoverable (e.g. foreign-language text), where a
+	// full-table fuzzy guess is unreliable anyway; skip it and let the caller fall
+	// through to an unknown result. See #247.
+	if !p.hasRegionAnchor() {
+		return nil, nil
+	}
+
 	results, err := searchCore(ctx, repo, p)
 	if err != nil {
 		return nil, err
@@ -120,6 +130,7 @@ func searchWithPrefixMatch(ctx context.Context, repo levenshteinQuerier, p Searc
 	candidates, err := repo.FindBasicByPrefix(queryCtx, repository.PrefixParams{
 		BaseAddr: baseAddr,
 		PrefCode: p.Pref,
+		LgCode:   p.LgCode,
 		Limit:    p.Limit,
 	})
 	if err != nil {

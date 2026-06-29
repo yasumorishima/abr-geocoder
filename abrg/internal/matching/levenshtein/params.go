@@ -28,3 +28,14 @@ type SearchParams struct {
 	NormalizedAddr   string         // Basic-normalized address (for extracting unmatched parts)
 	Limit            int            // Maximum number of results
 }
+
+// hasRegionAnchor reports whether the search is constrained to at least one
+// location filter that FindBasicByLevenshtein can actually apply: a
+// local-government code or a concrete prefecture code. (A machiaza ID is only
+// used together with an lg_code, so it is not an anchor on its own.) Without an
+// anchor the query has no location predicate and degrades into a full editdist3
+// scan of cache_machiaza
+// (600k+ rows), which can exceed queryTimeout under batch contention. See #247.
+func (p SearchParams) hasRegionAnchor() bool {
+	return p.LgCode != "" || (p.Pref != "" && p.Pref != model.All)
+}
